@@ -1,0 +1,26 @@
+#!/bin/bash
+
+[ -z "$1" ] && USER=root || USER="$1"
+
+id=0
+declare -A MACHINE
+
+while read machine; do
+    id=$((id+1))
+    uuid=$(echo $machine | sed -r 's/.*(\{.*\}).*/\1/g')
+    MACHINE[${id}_uuid]="$uuid"
+    hostport=$(VBoxManage showvminfo $uuid | grep "guest port = 22" | sed -r 's/.*host port = ([0-9]+).*/\1/g')
+    MACHINE[${id}_port]="$hostport"
+    echo " $id) ${machine} <${hostport}>"
+done < <(VBoxManage list runningvms)
+
+echo -n "select> "
+read num
+
+# echo ${#MACHINE[@]}
+if (( num > ${#MACHINE[@]} )); then
+    echo "Invalid index"
+    exit 1
+fi
+
+ssh -p ${MACHINE[${num}_port]} $USER@localhost
